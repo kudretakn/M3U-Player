@@ -11,6 +11,10 @@ class UrlUtils {
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'http://$url';
     }
+    if (url.contains('/get.php')) {
+      url = url.split('/get.php')[0];
+    }
+
     if (url.endsWith('/')) {
       url = url.substring(0, url.length - 1);
     }

@@ -35,7 +35,12 @@ class M3uRepository {
           'https://api.codetabs.com/v1/proxy?quest=${Uri.encodeComponent(url)}';
     }
 
-    final response = await _client.get(Uri.parse(fetchUrl));
+    final response = await _client.get(
+      Uri.parse(fetchUrl),
+      headers: {
+        'User-Agent': 'IPTV Smarters Pro', // Mimic a popular player
+      },
+    );
 
     if (response.statusCode == 200) {
       final channels = M3uParser.parse(response.body);
