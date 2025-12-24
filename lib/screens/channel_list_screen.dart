@@ -1,245 +1,76 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../models/channel.dart';
-import '../repositories/m3u_repository.dart';
-import '../utils/url_utils.dart';
+import '../utils/m3u_parser.dart'; // Ensure M3uParser is imported if needed, or remove if not used directly
 import 'player_screen.dart';
 
-// Assuming ChannelCategory is defined in models/channel.dart or similar.
-// If not, it needs to be defined here or in a separate file.
-// For the purpose of this replacement, I'll define it here if not present in the original context.
-// However, the instruction implies it's part of the existing structure or will be added.
-// Let's assume it's an enum that categorizes channels.
-enum ChannelCategory {
-  live,
-  movie,
-  series,
-  // Add other categories as needed
-}
-
 class ChannelListScreen extends StatefulWidget {
-  const ChannelListScreen({super.key});
+  final List<Channel> channels;
+  final ChannelCategory? initialCategory;
+
+  const ChannelListScreen({
+    super.key,
+    required this.channels,
+    this.initialCategory,
+  });
 
   @override
   State<ChannelListScreen> createState() => _ChannelListScreenState();
 }
 
 class _ChannelListScreenState extends State<ChannelListScreen> {
-  final M3uRepository _repository = M3uRepository();
-  List<Channel> allChannels = [];
+  List<Channel> _filteredChannels = [];
   List<String> _groups = [];
   String? _selectedGroup;
-  bool _isLoading = false;
-  String? _errorMessage;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Optionally load default channels or show dialog on first launch
-    // _showUrlDialog();
+    _initializeData();
   }
 
-  Future<void> _loadChannels(String url) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final fetchedChannels = await _repository.fetchChannels(url);
-      setState(() {
-        allChannels = fetchedChannels;
-        _groups = allChannels.map((c) => c.group ?? 'Diğer').toSet().toList()
-          ..sort();
-        _selectedGroup = null; // Reset filter
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
+  void _initializeData() {
+    // Filter by category first
+    var categoryChannels = widget.channels;
+    if (widget.initialCategory != null) {
+      categoryChannels = widget.channels
+          .where((c) => c.category == widget.initialCategory)
+          .toList();
     }
+
+    // Extract groups from the category-filtered list
+    _groups = categoryChannels.map((c) => c.group ?? 'Diğer').toSet().toList()
+      ..sort();
+
+    // Initially show all channels in this category
+    _filteredChannels = categoryChannels;
   }
 
-  void _showUrlDialog() {
-    final TextEditingController urlController = TextEditingController();
-    final TextEditingController usernameController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
+  void _filterChannels() {
+    var result = widget.channels;
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('M3U / Xtream Codes Giriş'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: urlController,
-                  decoration: const InputDecoration(
-                    labelText: 'URL veya Sunucu Adresi',
-                    hintText: 'http://example.com',
-                    border: OutlineInputBorder(),
-                  ),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 16),
-                const Text('Xtream Codes (İsteğe Bağlı)',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Kullanıcı Adı',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Şifre',
-                    border: OutlineInputBorder(),
-                  ),
-                  obscureText: true,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('İptal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                String url = urlController.text.trim();
-                final username = usernameController.text.trim();
-                final password = passwordController.text.trim();
+    // 1. Filter by Category
+    if (widget.initialCategory != null) {
+      result =
+          result.where((c) => c.category == widget.initialCategory).toList();
+    }
 
-                if (url.isNotEmpty) {
-                  String finalUrl = url;
-                  if (username.isNotEmpty && password.isNotEmpty) {
-                    finalUrl = UrlUtils.constructXtreamUrl(
-                      host: url,
-                      username: username,
-                      password: password,
-                    );
-                  }
+    // 2. Filter by Group
+    if (_selectedGroup != null) {
+      result =
+          result.where((c) => (c.group ?? 'Diğer') == _selectedGroup).toList();
+    }
 
-                  // Show confirmation dialog to let user verify/edit the URL
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      final TextEditingController confirmController =
-                          TextEditingController(text: finalUrl);
-                      return AlertDialog(
-                        title: const Text('Bağlantı Adresini Onayla'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                                'Oluşturulan bağlantı adresi aşağıdadır. Lütfen kontrol edin ve gerekirse düzenleyin.'),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: confirmController,
-                              maxLines: 3,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                labelText: 'Tam Bağlantı Adresi',
-                              ),
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('İptal'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _loadChannels(confirmController.text.trim());
-                            },
-                            child: const Text('Onayla ve Yükle'),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                }
-              },
-              child: const Text('Yükle'),
-            ),
-            TextButton(
-              onPressed: () async {
-                String url = urlController.text.trim();
-                final username = usernameController.text.trim();
-                final password = passwordController.text.trim();
+    // 3. Filter by Search
+    if (_searchController.text.isNotEmpty) {
+      final query = _searchController.text.toLowerCase();
+      result =
+          result.where((c) => c.name.toLowerCase().contains(query)).toList();
+    }
 
-                if (url.isNotEmpty) {
-                  String finalUrl = url;
-                  if (username.isNotEmpty && password.isNotEmpty) {
-                    finalUrl = UrlUtils.constructXtreamUrl(
-                      host: url,
-                      username: username,
-                      password: password,
-                    );
-                  }
-
-                  // Show loading indicator
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) =>
-                        const Center(child: CircularProgressIndicator()),
-                  );
-
-                  final result = await _repository.testConnection(finalUrl);
-
-                  // Hide loading
-                  Navigator.pop(context);
-
-                  // Show result
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Bağlantı Testi Sonucu'),
-                      content: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Denenen Adres:',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text(finalUrl,
-                                style: const TextStyle(fontSize: 12)),
-                            const SizedBox(height: 10),
-                            const Text('Sonuç:',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text(result),
-                          ],
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Tamam'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              },
-              child: const Text('Test Et'),
-            ),
-          ],
-        );
-      },
-    );
+    setState(() {
+      _filteredChannels = result;
+    });
   }
 
   void _openPlayer(Channel channel) {
@@ -253,218 +84,123 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('M3U Player'),
-              if (allChannels.isNotEmpty)
-                Text(
-                  'Toplam: ${allChannels.length} Kanal${_selectedGroup != null ? ' • $_selectedGroup' : ''}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_getCategoryTitle(widget.initialCategory)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          SizedBox(
+            width: 300,
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Kanal Ara...',
+                border: InputBorder.none,
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.1),
+              ),
+              onChanged: (_) => _filterChannels(),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
+      body: Row(
+        children: [
+          // Sidebar (Groups)
+          Container(
+            width: 250,
+            color: const Color(0xFF1E1E1E),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.black12,
+                  width: double.infinity,
+                  child: const Text(
+                    'Kategoriler',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
-            ],
-          ),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          bottom: const TabBar(
-            isScrollable: true,
-            tabs: [
-              Tab(text: 'Tümü', icon: Icon(Icons.list)),
-              Tab(text: 'Canlı Yayınlar', icon: Icon(Icons.live_tv)),
-              Tab(text: 'Filmler', icon: Icon(Icons.movie)),
-              Tab(text: 'Diziler', icon: Icon(Icons.video_library)),
-            ],
-            indicatorColor: Colors.blueAccent,
-          ),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.filter_list,
-                  color: _selectedGroup != null ? Colors.yellow : Colors.white),
-              tooltip: 'Kategori Seç',
-              onPressed: _groups.isNotEmpty ? _showGroupFilter : null,
-            ),
-            IconButton(
-              icon: const Icon(Icons.link),
-              tooltip: 'URL Yükle',
-              onPressed: _showUrlDialog,
-            ),
-            IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {},
-            ),
-          ],
-        ),
-        body: TabBarView(
-          children: [
-            _buildChannelGrid(null), // All channels
-            _buildChannelGrid(ChannelCategory.live),
-            _buildChannelGrid(ChannelCategory.movie),
-            _buildChannelGrid(ChannelCategory.series),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showGroupFilter() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'Kategori Seç',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _groups.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return ListTile(
-                      leading: const Icon(Icons.all_inclusive),
-                      title: const Text('Tüm Kategoriler'),
-                      onTap: () {
-                        setState(() {
-                          _selectedGroup = null;
-                        });
-                        Navigator.pop(context);
-                      },
-                      trailing: _selectedGroup == null
-                          ? const Icon(Icons.check, color: Colors.blue)
-                          : null,
-                    );
-                  }
-                  final group = _groups[index - 1];
-                  return ListTile(
-                    title: Text(group),
-                    onTap: () {
-                      setState(() {
-                        _selectedGroup = group;
-                      });
-                      Navigator.pop(context);
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _groups.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return _buildGroupTile(null, 'Tümü');
+                      }
+                      final group = _groups[index - 1];
+                      return _buildGroupTile(group, group);
                     },
-                    trailing: _selectedGroup == group
-                        ? const Icon(Icons.check, color: Colors.blue)
-                        : null,
-                  );
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        );
+          ),
+          // Main Content (Channels)
+          Expanded(
+            child: _filteredChannels.isEmpty
+                ? const Center(child: Text('Kanal bulunamadı'))
+                : GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 5,
+                      childAspectRatio: 1.5,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: _filteredChannels.length,
+                    itemBuilder: (context, index) {
+                      return ChannelCard(
+                        channel: _filteredChannels[index],
+                        onTap: () => _openPlayer(_filteredChannels[index]),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupTile(String? group, String title) {
+    final isSelected = _selectedGroup == group;
+    return ListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          color: isSelected ? Colors.blueAccent : Colors.white70,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      selected: isSelected,
+      selectedTileColor: Colors.blueAccent.withOpacity(0.1),
+      onTap: () {
+        setState(() {
+          _selectedGroup = group;
+          _filterChannels();
+        });
       },
     );
   }
 
-  Widget _buildChannelGrid(ChannelCategory? category) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+  String _getCategoryTitle(ChannelCategory? category) {
+    switch (category) {
+      case ChannelCategory.live:
+        return 'Canlı Yayınlar';
+      case ChannelCategory.movie:
+        return 'Filmler';
+      case ChannelCategory.series:
+        return 'Diziler';
+      default:
+        return 'Tüm Kanallar';
     }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 60, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              'Hata Oluştu',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _showUrlDialog,
-              child: const Text('Tekrar Dene'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    var filteredChannels = category == null
-        ? allChannels
-        : allChannels.where((c) => c.category == category).toList();
-
-    if (_selectedGroup != null) {
-      filteredChannels = filteredChannels
-          .where((c) => (c.group ?? 'Diğer') == _selectedGroup)
-          .toList();
-    }
-
-    if (filteredChannels.isEmpty) {
-      if (allChannels.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.playlist_add, size: 80, color: Colors.grey),
-              const SizedBox(height: 16),
-              Text(
-                'Liste Boş',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(color: Colors.white),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Sağ üstteki link ikonuna tıklayarak bir M3U URL ekleyin.',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-        );
-      } else {
-        return Center(
-          child: Text(
-            'Bu kategoride içerik bulunamadı.',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(color: Colors.grey),
-          ),
-        );
-      }
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 1.5,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: filteredChannels.length,
-      itemBuilder: (context, index) {
-        return ChannelCard(
-          channel: filteredChannels[index],
-          onTap: () => _openPlayer(filteredChannels[index]),
-        );
-      },
-    );
   }
 }
 

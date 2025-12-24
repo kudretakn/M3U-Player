@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'screens/channel_list_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'utils/http_overrides.dart';
 
 void main() {
@@ -28,7 +28,7 @@ class M3uPlayerApp extends StatelessWidget {
           useMaterial3: true,
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        home: const ChannelListScreen(),
+        home: const DashboardScreen(),
       ),
     );
   }
