@@ -13,10 +13,9 @@ class M3uRepository {
       String fetchUrl = url;
       if (kIsWeb) {
         // Use a CORS proxy for Web to avoid ClientException/CORS errors
-        // Note: This is a public proxy, use with caution for sensitive data.
-        // For production, a dedicated backend proxy is recommended.
-        // Switching to corsproxy.io as it handles large files better
-        fetchUrl = 'https://corsproxy.io/?${Uri.encodeComponent(url)}';
+        // Switching to CodeTabs as it is often more reliable for raw content
+        fetchUrl =
+            'https://api.codetabs.com/v1/proxy?quest=${Uri.encodeComponent(url)}';
       }
 
       final response = await _client.get(Uri.parse(fetchUrl));
