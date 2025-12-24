@@ -110,10 +110,14 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
             ),
             ElevatedButton(
               onPressed: () {
+                print('Yükle button pressed'); // Debug log
                 Navigator.pop(context);
                 String url = urlController.text.trim();
                 final username = usernameController.text.trim();
                 final password = passwordController.text.trim();
+
+                print('URL Input: $url'); // Debug log
+                print('Username Input: $username'); // Debug log
 
                 if (url.isNotEmpty) {
                   if (username.isNotEmpty && password.isNotEmpty) {
@@ -122,11 +126,15 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
                       username: username,
                       password: password,
                     );
+                    print('Constructed Xtream URL: $finalUrl'); // Debug log
                     _loadChannels(finalUrl);
                   } else {
                     // Use URL as is
+                    print('Using direct URL: $url'); // Debug log
                     _loadChannels(url);
                   }
+                } else {
+                  print('URL is empty'); // Debug log
                 }
               },
               child: const Text('Yükle'),
