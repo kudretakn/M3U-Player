@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/channel_list_screen.dart';
+import 'utils/http_overrides.dart';
 
 void main() {
+  HttpOverrides.global = MyHttpOverrides();
   runApp(const M3uPlayerApp());
 }
 
