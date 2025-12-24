@@ -172,7 +172,50 @@ class _PlayerScreenState extends State<PlayerScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          Video(key: _videoKey, controller: _controller),
+          MaterialVideoControlsTheme(
+            normal: MaterialVideoControlsThemeData(
+              primaryButtonBar: [
+                const Spacer(flex: 2),
+                IconButton(
+                  icon: const Icon(Icons.replay_10, color: Colors.white),
+                  iconSize: 36,
+                  onPressed: () => _seekRelative(const Duration(seconds: -15)),
+                ),
+                const Spacer(),
+                const MaterialPlayOrPauseButton(),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.forward_10, color: Colors.white),
+                  iconSize: 36,
+                  onPressed: () => _seekRelative(const Duration(seconds: 15)),
+                ),
+                const Spacer(flex: 2),
+              ],
+            ),
+            fullscreen: MaterialVideoControlsThemeData(
+              primaryButtonBar: [
+                const Spacer(flex: 2),
+                IconButton(
+                  icon: const Icon(Icons.replay_10, color: Colors.white),
+                  iconSize: 36,
+                  onPressed: () => _seekRelative(const Duration(seconds: -15)),
+                ),
+                const Spacer(),
+                const MaterialPlayOrPauseButton(),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.forward_10, color: Colors.white),
+                  iconSize: 36,
+                  onPressed: () => _seekRelative(const Duration(seconds: 15)),
+                ),
+                const Spacer(flex: 2),
+              ],
+            ),
+            child: Video(
+              key: _videoKey,
+              controller: _controller,
+            ),
+          ),
           // Back button overlay
           Positioned(
             top: 16,
@@ -233,53 +276,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     onPressed: _toggleFavorite,
                   ),
                 ],
-              ),
-            ),
-          ),
-          // Seek Buttons (Center Left/Right)
-          Positioned(
-            left: 50,
-            top: 0,
-            bottom: 0,
-            child: Center(
-              child: IconButton(
-                iconSize: 50,
-                icon: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.replay_10,
-                        color: Colors.white), // Using replay_10 as base
-                    Text('15s',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                onPressed: () => _seekRelative(const Duration(seconds: -15)),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 50,
-            top: 0,
-            bottom: 0,
-            child: Center(
-              child: IconButton(
-                iconSize: 50,
-                icon: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.forward_10,
-                        color: Colors.white), // Using forward_10 as base
-                    Text('15s',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                onPressed: () => _seekRelative(const Duration(seconds: 15)),
               ),
             ),
           ),
