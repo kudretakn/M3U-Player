@@ -41,12 +41,18 @@ class M3uParser {
         // Assume it's a URL if it doesn't start with #
         if (currentName != null) {
           final category = _determineCategory(currentGroup, line);
+          String? seriesName;
+          if (category == ChannelCategory.series) {
+            seriesName = _extractSeriesName(currentName);
+          }
+
           channels.add(Channel(
             name: currentName,
             streamUrl: line,
             logoUrl: currentLogo,
             group: currentGroup,
             category: category,
+            seriesName: seriesName,
           ));
           // Reset for next channel
           currentName = null;
@@ -90,5 +96,40 @@ class M3uParser {
 
     // Default to live
     return ChannelCategory.live;
+  }
+
+  static String _extractSeriesName(String name) {
+    // Common patterns: "Series Name S01 E01", "Series Name S01E01", "Series Name 1. Sezon 1. Bölüm"
+    // We want to extract just "Series Name"
+
+    // Regex for S01E01 or S01 E01
+    final sxxExxRegex = RegExp(r'\s*S\d+\s*E\d+.*', caseSensitive: false);
+    if (sxxExxRegex.hasMatch(name)) {
+      return name.replaceAll(sxxExxRegex, '').trim();
+    }
+
+    // Regex for "1. Sezon" or "Sezon 1"
+    final seasonRegex = RegExp(r'\s*\d+\.?\s*Sezon.*', caseSensitive: false);
+    if (seasonRegex.hasMatch(name)) {
+      return name.replaceAll(seasonRegex, '').trim();
+    }
+
+    final seasonRegex2 = RegExp(r'\s*Sezon\s*\d+.*', caseSensitive: false);
+    if (seasonRegex2.hasMatch(name)) {
+      return name.replaceAll(seasonRegex2, '').trim();
+    }
+
+    // Regex for "1. Bölüm" or "Bölüm 1"
+    final episodeRegex = RegExp(r'\s*\d+\.?\s*Bölüm.*', caseSensitive: false);
+    if (episodeRegex.hasMatch(name)) {
+      return name.replaceAll(episodeRegex, '').trim();
+    }
+
+    final episodeRegex2 = RegExp(r'\s*Bölüm\s*\d+.*', caseSensitive: false);
+    if (episodeRegex2.hasMatch(name)) {
+      return name.replaceAll(episodeRegex2, '').trim();
+    }
+
+    return name;
   }
 }

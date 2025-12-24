@@ -44,6 +44,17 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
 
     // Initially show all channels in this category
     _filteredChannels = categoryChannels;
+    _sortChannels();
+  }
+
+  void _sortChannels() {
+    _filteredChannels.sort((a, b) {
+      final aIsTr = a.name.toUpperCase().startsWith('TR');
+      final bIsTr = b.name.toUpperCase().startsWith('TR');
+      if (aIsTr && !bIsTr) return -1;
+      if (!aIsTr && bIsTr) return 1;
+      return a.name.compareTo(b.name);
+    });
   }
 
   void _filterChannels() {
@@ -70,6 +81,7 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
 
     setState(() {
       _filteredChannels = result;
+      _sortChannels();
     });
   }
 
