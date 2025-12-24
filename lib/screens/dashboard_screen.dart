@@ -37,12 +37,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
         allChannels = fetchedChannels;
         _isLoading = false;
       });
+
+      if (fetchedChannels.isEmpty) {
+        if (mounted) {
+          _showDebugDialog(url);
+        }
+      }
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _showDebugDialog(String url) async {
+    // Re-fetch raw content for debugging
+    String debugContent = "Loading raw content...";
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hata Ayıklama'),
+        content: FutureBuilder<String>(
+          future: _repository.testConnection(url),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                  height: 100,
+                  child: Center(child: CircularProgressIndicator()));
+            }
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                      'Kanal listesi boş geldi. Sunucudan dönen ham veri:',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    color: Colors.black12,
+                    child: Text(snapshot.data ?? 'Veri alınamadı'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showUrlDialog() {
