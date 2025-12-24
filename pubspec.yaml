@@ -1,0 +1,29 @@
+name: m3u_player
+description: A simple and fast M3U player for Android TV.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Video player for streaming
+  video_player: ^2.8.1
+  # Chewie for better player controls (optional, but good for TV UI)
+  chewie: ^1.7.1
+  # HTTP for fetching M3U lists
+  http: ^1.1.0
+  # For keeping screen on
+  wakelock_plus: ^1.1.0
+  # For TV focus handling (Flutter has built-in Focus widgets, but this helps)
+  # Using standard widgets is usually enough.
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
