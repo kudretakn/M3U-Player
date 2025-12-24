@@ -21,6 +21,9 @@ class M3uRepository {
       final response = await _client.get(Uri.parse(fetchUrl));
 
       if (response.statusCode == 200) {
+        debugPrint('Fetched content length: ${response.body.length}');
+        debugPrint(
+            'Content preview: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
         return M3uParser.parse(response.body);
       } else {
         throw Exception(
