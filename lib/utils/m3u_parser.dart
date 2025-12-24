@@ -63,23 +63,32 @@ class M3uParser {
     final groupLower = group?.toLowerCase() ?? '';
     final urlLower = url.toLowerCase();
 
+    // Series detection
     if (groupLower.contains('series') ||
         groupLower.contains('dizi') ||
         groupLower.contains('season') ||
-        groupLower.contains('sezon')) {
+        groupLower.contains('sezon') ||
+        groupLower.contains('bölüm') ||
+        groupLower.contains('episode')) {
       return ChannelCategory.series;
     }
 
+    // Movie detection
     if (groupLower.contains('movie') ||
         groupLower.contains('film') ||
         groupLower.contains('vod') ||
         groupLower.contains('sinema') ||
+        groupLower.contains('cinema') ||
+        groupLower.contains('movies') ||
         urlLower.endsWith('.mp4') ||
         urlLower.endsWith('.mkv') ||
-        urlLower.endsWith('.avi')) {
+        urlLower.endsWith('.avi') ||
+        urlLower.contains('movie') ||
+        urlLower.contains('movies')) {
       return ChannelCategory.movie;
     }
 
+    // Default to live
     return ChannelCategory.live;
   }
 }
