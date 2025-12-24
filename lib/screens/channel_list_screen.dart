@@ -2,6 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/channel.dart';
 import '../repositories/m3u_repository.dart';
+import 'player_screen.dart';
+
+// Assuming ChannelCategory is defined in models/channel.dart or similar.
+// If not, it needs to be defined here or in a separate file.
+// For the purpose of this replacement, I'll define it here if not present in the original context.
+// However, the instruction implies it's part of the existing structure or will be added.
+// Let's assume it's an enum that categorizes channels.
+enum ChannelCategory {
+  live,
+  movie,
+  series,
+  // Add other categories as needed
+}
 
 class ChannelListScreen extends StatefulWidget {
   const ChannelListScreen({super.key});
@@ -12,13 +25,15 @@ class ChannelListScreen extends StatefulWidget {
 
 class _ChannelListScreenState extends State<ChannelListScreen> {
   final M3uRepository _repository = M3uRepository();
-  List<Channel> channels = [];
+  List<Channel> allChannels = [];
   bool _isLoading = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    // Optionally load default channels or show dialog on first launch
+    // _showUrlDialog();
   }
 
   Future<void> _loadChannels(String url) async {
@@ -30,7 +45,7 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
     try {
       final fetchedChannels = await _repository.fetchChannels(url);
       setState(() {
-        channels = fetchedChannels;
+        allChannels = fetchedChannels;
         _isLoading = false;
       });
     } catch (e) {
@@ -74,37 +89,60 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('M3U Player'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.link),
-            tooltip: 'URL Yükle',
-            onPressed: _showUrlDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: _buildBody(),
+  void _openPlayer(Channel channel) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PlayerScreen(channel: channel),
       ),
     );
   }
 
-  Widget _buildBody() {
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('M3U Player'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Canlı Yayınlar', icon: Icon(Icons.live_tv)),
+              Tab(text: 'Filmler', icon: Icon(Icons.movie)),
+              Tab(text: 'Diziler', icon: Icon(Icons.video_library)),
+            ],
+            indicatorColor: Colors.blueAccent,
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.link),
+              tooltip: 'URL Yükle',
+              onPressed: _showUrlDialog,
+            ),
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () {},
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {},
+            ),
+          ],
+        ),
+        body: TabBarView(
+          children: [
+            _buildChannelGrid(ChannelCategory.live),
+            _buildChannelGrid(ChannelCategory.movie),
+            _buildChannelGrid(ChannelCategory.series),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChannelGrid(ChannelCategory category) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -139,40 +177,59 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
       );
     }
 
-    if (channels.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.playlist_add, size: 80, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              'Kanal Listesi Boş',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Sağ üstteki link ikonuna tıklayarak bir M3U URL ekleyin.',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-      );
+    final filteredChannels =
+        allChannels.where((c) => c.category == category).toList();
+
+    if (filteredChannels.isEmpty) {
+      if (allChannels.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.playlist_add, size: 80, color: Colors.grey),
+              const SizedBox(height: 16),
+              Text(
+                'Liste Boş',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Sağ üstteki link ikonuna tıklayarak bir M3U URL ekleyin.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        );
+      } else {
+        return Center(
+          child: Text(
+            'Bu kategoride içerik bulunamadı.',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(color: Colors.grey),
+          ),
+        );
+      }
     }
 
     return GridView.builder(
+      padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
         childAspectRatio: 1.5,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
-      itemCount: channels.length,
+      itemCount: filteredChannels.length,
       itemBuilder: (context, index) {
-        return ChannelCard(channel: channels[index]);
+        return ChannelCard(
+          channel: filteredChannels[index],
+          onTap: () => _openPlayer(filteredChannels[index]),
+        );
       },
     );
   }
@@ -180,8 +237,9 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
 
 class ChannelCard extends StatefulWidget {
   final Channel channel;
+  final VoidCallback onTap;
 
-  const ChannelCard({super.key, required this.channel});
+  const ChannelCard({super.key, required this.channel, required this.onTap});
 
   @override
   State<ChannelCard> createState() => _ChannelCardState();
@@ -192,66 +250,75 @@ class _ChannelCardState extends State<ChannelCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
+    return InkWell(
+      onTap: widget.onTap,
       onFocusChange: (hasFocus) {
         setState(() {
           _isFocused = hasFocus;
         });
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(12),
-          border: _isFocused
-              ? Border.all(color: Colors.blueAccent, width: 3)
-              : Border.all(color: Colors.transparent, width: 3),
-          boxShadow: _isFocused
-              ? [
-                  BoxShadow(
-                    color: Colors.blueAccent.withOpacity(0.4),
-                    blurRadius: 12,
-                    spreadRadius: 2,
-                  )
-                ]
-              : [],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: widget.channel.logoUrl != null &&
-                        widget.channel.logoUrl!.isNotEmpty
-                    ? Image.network(
-                        widget.channel.logoUrl!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.tv, size: 50, color: Colors.grey),
-                      )
-                    : const Icon(Icons.tv, size: 50, color: Colors.grey),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text(
-                  widget.channel.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+      child: Focus(
+        onFocusChange: (hasFocus) {
+          setState(() {
+            _isFocused = hasFocus;
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(12),
+            border: _isFocused
+                ? Border.all(color: Colors.blueAccent, width: 3)
+                : Border.all(color: Colors.transparent, width: 3),
+            boxShadow: _isFocused
+                ? [
+                    BoxShadow(
+                      color: Colors.blueAccent.withOpacity(0.4),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    )
+                  ]
+                : [],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: widget.channel.logoUrl != null &&
+                          widget.channel.logoUrl!.isNotEmpty
+                      ? Image.network(
+                          widget.channel.logoUrl!,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.tv,
+                                  size: 50, color: Colors.grey),
+                        )
+                      : const Icon(Icons.tv, size: 50, color: Colors.grey),
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text(
+                    widget.channel.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

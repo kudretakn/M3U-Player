@@ -40,11 +40,13 @@ class M3uParser {
       } else if (!line.startsWith('#')) {
         // Assume it's a URL if it doesn't start with #
         if (currentName != null) {
+          final category = _determineCategory(currentGroup, line);
           channels.add(Channel(
             name: currentName,
             streamUrl: line,
             logoUrl: currentLogo,
             group: currentGroup,
+            category: category,
           ));
           // Reset for next channel
           currentName = null;
@@ -55,5 +57,29 @@ class M3uParser {
     }
 
     return channels;
+  }
+
+  static ChannelCategory _determineCategory(String? group, String url) {
+    final groupLower = group?.toLowerCase() ?? '';
+    final urlLower = url.toLowerCase();
+
+    if (groupLower.contains('series') ||
+        groupLower.contains('dizi') ||
+        groupLower.contains('season') ||
+        groupLower.contains('sezon')) {
+      return ChannelCategory.series;
+    }
+
+    if (groupLower.contains('movie') ||
+        groupLower.contains('film') ||
+        groupLower.contains('vod') ||
+        groupLower.contains('sinema') ||
+        urlLower.endsWith('.mp4') ||
+        urlLower.endsWith('.mkv') ||
+        urlLower.endsWith('.avi')) {
+      return ChannelCategory.movie;
+    }
+
+    return ChannelCategory.live;
   }
 }
