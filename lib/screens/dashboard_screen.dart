@@ -283,22 +283,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       Expanded(
-                        child: Row(
+                        child: GridView.count(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 1.5,
                           children: [
+                            _buildCategoryCard(
+                              'Tüm Kanallar',
+                              Icons.list,
+                              Colors.orangeAccent,
+                              null, // Null category means ALL
+                            ),
                             _buildCategoryCard(
                               'Canlı Yayınlar',
                               Icons.live_tv,
                               Colors.redAccent,
                               ChannelCategory.live,
                             ),
-                            const SizedBox(width: 16),
                             _buildCategoryCard(
                               'Filmler',
                               Icons.movie,
                               Colors.blueAccent,
                               ChannelCategory.movie,
                             ),
-                            const SizedBox(width: 16),
                             _buildCategoryCard(
                               'Diziler',
                               Icons.video_library,
@@ -315,8 +323,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCategoryCard(
-      String title, IconData icon, Color color, ChannelCategory category) {
-    final count = allChannels.where((c) => c.category == category).length;
+      String title, IconData icon, Color color, ChannelCategory? category) {
+    final count = category == null
+        ? allChannels.length
+        : allChannels.where((c) => c.category == category).length;
     return Expanded(
       child: GestureDetector(
         onTap: () => _navigateToCategory(category),
