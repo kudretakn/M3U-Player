@@ -1,10 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/playlist_screen.dart';
 import 'utils/http_overrides.dart';
 
+import 'package:media_kit/media_kit.dart';
+
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
   runApp(const M3uPlayerApp());
 }
@@ -19,7 +23,7 @@ class M3uPlayerApp extends StatelessWidget {
         LogicalKeySet(LogicalKeyboardKey.select): const ActivateIntent(),
       },
       child: MaterialApp(
-        title: 'M3U Player',
+        title: 'Simple M3U IPTV',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           brightness: Brightness.dark,
@@ -28,7 +32,7 @@ class M3uPlayerApp extends StatelessWidget {
           useMaterial3: true,
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        home: const DashboardScreen(),
+        home: const PlaylistScreen(),
       ),
     );
   }

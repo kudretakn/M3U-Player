@@ -10,13 +10,15 @@ dependencies:
   flutter:
     sdk: flutter
   # Video player for streaming
-  video_player: ^2.8.1
-  # Chewie for better player controls (optional, but good for TV UI)
-  chewie: ^1.7.1
+  # Media Kit for better playback
+  media_kit: ^1.1.10
+  media_kit_video: ^1.2.4
+  media_kit_libs_android_video: ^1.2.0
   # HTTP for fetching M3U lists
   http: ^1.1.0
   # For keeping screen on
   wakelock_plus: ^1.1.0
+  shared_preferences: ^2.5.4
   # For TV focus handling (Flutter has built-in Focus widgets, but this helps)
   # Using standard widgets is usually enough.
 

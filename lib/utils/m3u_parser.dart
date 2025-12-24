@@ -40,10 +40,21 @@ class M3uParser {
       } else if (!line.startsWith('#')) {
         // Assume it's a URL if it doesn't start with #
         if (currentName != null) {
-          final category = _determineCategory(currentGroup, line);
+          var category = _determineCategory(currentGroup, line);
           String? seriesName;
-          if (category == ChannelCategory.series) {
-            seriesName = _extractSeriesName(currentName);
+
+          // Try to extract series name regardless of initial category
+          // This helps catch series that might be mislabeled as movies
+          final potentialSeriesName = _extractSeriesName(currentName);
+
+          // If the extracted name is significantly different (shorter) than the full name,
+          // it likely means we successfully stripped SxxExx, implying it IS a series.
+          if (potentialSeriesName != currentName &&
+              potentialSeriesName.length < currentName.length) {
+            category = ChannelCategory.series;
+            seriesName = potentialSeriesName;
+          } else if (category == ChannelCategory.series) {
+            seriesName = potentialSeriesName;
           }
 
           channels.add(Channel(
@@ -128,6 +139,12 @@ class M3uParser {
     final episodeRegex2 = RegExp(r'\s*Bölüm\s*\d+.*', caseSensitive: false);
     if (episodeRegex2.hasMatch(name)) {
       return name.replaceAll(episodeRegex2, '').trim();
+    }
+
+    // Regex for " - E01" or " E01"
+    final e01Regex = RegExp(r'\s*[-]?\s*E\d+.*', caseSensitive: false);
+    if (e01Regex.hasMatch(name)) {
+      return name.replaceAll(e01Regex, '').trim();
     }
 
     return name;

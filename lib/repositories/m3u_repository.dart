@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/channel.dart';
 import '../utils/m3u_parser.dart';
+import 'settings_repository.dart';
 
 class M3uRepository {
   final http.Client _client;
@@ -85,27 +87,74 @@ class M3uRepository {
   }
 
   Future<List<Channel>> _fetch(String url) async {
-    String fetchUrl = url;
     if (kIsWeb) {
-      // Use a CORS proxy for Web to avoid ClientException/CORS errors
-      // Switching to CodeTabs as it is often more reliable for raw content
-      fetchUrl =
-          'https://api.codetabs.com/v1/proxy?quest=${Uri.encodeComponent(url)}';
-    }
+      // Web Proxy Logic
+      final proxies = [
+        (String u) =>
+            'https://api.codetabs.com/v1/proxy?quest=${Uri.encodeComponent(u)}',
+        (String u) => 'https://corsproxy.io/?${Uri.encodeComponent(u)}',
+      ];
 
-    final response = await _client.get(
-      Uri.parse(fetchUrl),
-      headers: {
-        'User-Agent': 'IPTV Smarters Pro', // Mimic a popular player
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final channels = M3uParser.parse(response.body);
-      return channels;
+      for (var proxy in proxies) {
+        try {
+          final response = await _client.get(
+            Uri.parse(proxy(url)),
+            headers: {'User-Agent': 'IPTV Smarters Pro'},
+          );
+          if (response.statusCode == 200) {
+            return M3uParser.parse(
+                utf8.decode(response.bodyBytes, allowMalformed: true));
+          }
+        } catch (e) {
+          print('Proxy failed: $e');
+        }
+      }
+      throw Exception('All web proxies failed.');
     } else {
-      throw Exception(
-          'Failed to load M3U: ${response.statusCode} ${response.reasonPhrase}');
+      // Native Logic
+      final response = await _client.get(
+        Uri.parse(url),
+        headers: {'User-Agent': 'IPTV Smarters Pro'},
+      );
+
+      if (response.statusCode == 200) {
+        final channels = M3uParser.parse(
+            utf8.decode(response.bodyBytes, allowMalformed: true));
+        return await _filterChannels(channels);
+      } else {
+        throw Exception(
+            'Failed to load M3U: ${response.statusCode} ${response.reasonPhrase}');
+      }
     }
+  }
+
+  Future<List<Channel>> _filterChannels(List<Channel> channels) async {
+    final settingsRepo = SettingsRepository();
+    final adultFilterEnabled = await settingsRepo.isAdultFilterEnabled();
+
+    if (!adultFilterEnabled) return channels;
+
+    final adultKeywords = [
+      'xxx',
+      'porn',
+      'adult',
+      '+18',
+      'sex',
+      'erotic',
+      'hardcore',
+      'nsfw'
+    ];
+
+    return channels.where((channel) {
+      final nameLower = channel.name.toLowerCase();
+      final groupLower = channel.group?.toLowerCase() ?? '';
+
+      for (var keyword in adultKeywords) {
+        if (nameLower.contains(keyword) || groupLower.contains(keyword)) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
   }
 }
