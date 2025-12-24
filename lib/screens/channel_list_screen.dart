@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/channel.dart';
 import '../repositories/m3u_repository.dart';
+import '../utils/url_utils.dart';
 import 'player_screen.dart';
 
 // Assuming ChannelCategory is defined in models/channel.dart or similar.
@@ -58,16 +59,49 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
 
   void _showUrlDialog() {
     final TextEditingController urlController = TextEditingController();
+    final TextEditingController usernameController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('M3U URL Girin'),
-          content: TextField(
-            controller: urlController,
-            decoration: const InputDecoration(
-                hintText: 'http://example.com/playlist.m3u'),
-            autofocus: true,
+          title: const Text('M3U / Xtream Codes Giriş'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: urlController,
+                  decoration: const InputDecoration(
+                    labelText: 'URL veya Sunucu Adresi',
+                    hintText: 'http://example.com',
+                    border: OutlineInputBorder(),
+                  ),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                const Text('Xtream Codes (İsteğe Bağlı)',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Kullanıcı Adı',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Şifre',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -77,8 +111,22 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                if (urlController.text.isNotEmpty) {
-                  _loadChannels(urlController.text);
+                String url = urlController.text.trim();
+                final username = usernameController.text.trim();
+                final password = passwordController.text.trim();
+
+                if (url.isNotEmpty) {
+                  if (username.isNotEmpty && password.isNotEmpty) {
+                    final finalUrl = UrlUtils.constructXtreamUrl(
+                      host: url,
+                      username: username,
+                      password: password,
+                    );
+                    _loadChannels(finalUrl);
+                  } else {
+                    // Use URL as is
+                    _loadChannels(url);
+                  }
                 }
               },
               child: const Text('Yükle'),
