@@ -116,17 +116,55 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
                 final password = passwordController.text.trim();
 
                 if (url.isNotEmpty) {
+                  String finalUrl = url;
                   if (username.isNotEmpty && password.isNotEmpty) {
-                    final finalUrl = UrlUtils.constructXtreamUrl(
+                    finalUrl = UrlUtils.constructXtreamUrl(
                       host: url,
                       username: username,
                       password: password,
                     );
-                    _loadChannels(finalUrl);
-                  } else {
-                    // Use URL as is
-                    _loadChannels(url);
                   }
+
+                  // Show confirmation dialog to let user verify/edit the URL
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      final TextEditingController confirmController =
+                          TextEditingController(text: finalUrl);
+                      return AlertDialog(
+                        title: const Text('Bağlantı Adresini Onayla'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                                'Oluşturulan bağlantı adresi aşağıdadır. Lütfen kontrol edin ve gerekirse düzenleyin.'),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: confirmController,
+                              maxLines: 3,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Tam Bağlantı Adresi',
+                              ),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('İptal'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _loadChannels(confirmController.text.trim());
+                            },
+                            child: const Text('Onayla ve Yükle'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
                 }
               },
               child: const Text('Yükle'),
