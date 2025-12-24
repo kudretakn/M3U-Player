@@ -26,6 +26,29 @@ class M3uRepository {
     }
   }
 
+  Future<String> testConnection(String url) async {
+    try {
+      String fetchUrl = url;
+      if (kIsWeb) {
+        fetchUrl =
+            'https://api.codetabs.com/v1/proxy?quest=${Uri.encodeComponent(url)}';
+      }
+
+      final response = await _client.get(
+        Uri.parse(fetchUrl),
+        headers: {
+          'User-Agent': 'IPTV Smarters Pro',
+        },
+      );
+
+      return 'Status Code: ${response.statusCode}\n'
+          'Reason: ${response.reasonPhrase}\n'
+          'Body Preview: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}';
+    } catch (e) {
+      return 'Connection Error: $e';
+    }
+  }
+
   Future<List<Channel>> _fetch(String url) async {
     String fetchUrl = url;
     if (kIsWeb) {
