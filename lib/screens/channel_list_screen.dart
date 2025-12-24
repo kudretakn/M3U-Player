@@ -249,14 +249,26 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('M3U Player'),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('M3U Player'),
+              if (allChannels.isNotEmpty)
+                Text(
+                  'Toplam: ${allChannels.length} Kanal',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+            ],
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           bottom: const TabBar(
+            isScrollable: true,
             tabs: [
+              Tab(text: 'Tümü', icon: Icon(Icons.list)),
               Tab(text: 'Canlı Yayınlar', icon: Icon(Icons.live_tv)),
               Tab(text: 'Filmler', icon: Icon(Icons.movie)),
               Tab(text: 'Diziler', icon: Icon(Icons.video_library)),
@@ -281,6 +293,7 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
         ),
         body: TabBarView(
           children: [
+            _buildChannelGrid(null), // All channels
             _buildChannelGrid(ChannelCategory.live),
             _buildChannelGrid(ChannelCategory.movie),
             _buildChannelGrid(ChannelCategory.series),
@@ -290,7 +303,7 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
     );
   }
 
-  Widget _buildChannelGrid(ChannelCategory category) {
+  Widget _buildChannelGrid(ChannelCategory? category) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -325,8 +338,9 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
       );
     }
 
-    final filteredChannels =
-        allChannels.where((c) => c.category == category).toList();
+    final filteredChannels = category == null
+        ? allChannels
+        : allChannels.where((c) => c.category == category).toList();
 
     if (filteredChannels.isEmpty) {
       if (allChannels.isEmpty) {
