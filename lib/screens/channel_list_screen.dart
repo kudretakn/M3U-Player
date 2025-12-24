@@ -169,6 +169,68 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
               },
               child: const Text('Yükle'),
             ),
+            TextButton(
+              onPressed: () async {
+                String url = urlController.text.trim();
+                final username = usernameController.text.trim();
+                final password = passwordController.text.trim();
+
+                if (url.isNotEmpty) {
+                  String finalUrl = url;
+                  if (username.isNotEmpty && password.isNotEmpty) {
+                    finalUrl = UrlUtils.constructXtreamUrl(
+                      host: url,
+                      username: username,
+                      password: password,
+                    );
+                  }
+
+                  // Show loading indicator
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) =>
+                        const Center(child: CircularProgressIndicator()),
+                  );
+
+                  final result = await _repository.testConnection(finalUrl);
+
+                  // Hide loading
+                  Navigator.pop(context);
+
+                  // Show result
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Bağlantı Testi Sonucu'),
+                      content: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('Denenen Adres:',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text(finalUrl,
+                                style: const TextStyle(fontSize: 12)),
+                            const SizedBox(height: 10),
+                            const Text('Sonuç:',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text(result),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Tamam'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+              child: const Text('Test Et'),
+            ),
           ],
         );
       },
