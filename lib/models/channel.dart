@@ -7,6 +7,9 @@ class Channel {
   final String? group;
   final ChannelCategory category;
   final String? seriesName;
+  final String? tvgId;
+  final String? tvgName;
+  final String? tvgLogo;
 
   Channel({
     required this.name,
@@ -15,6 +18,9 @@ class Channel {
     this.group,
     this.category = ChannelCategory.live,
     this.seriesName,
+    this.tvgId,
+    this.tvgName,
+    this.tvgLogo,
   });
 
   @override

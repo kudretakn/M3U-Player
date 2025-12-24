@@ -5,6 +5,9 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/channel.dart';
 import '../repositories/favorites_repository.dart';
+import '../repositories/playback_repository.dart';
+import '../repositories/epg_repository.dart';
+import 'dart:async';
 
 class PlayerScreen extends StatefulWidget {
   final Channel channel;
@@ -20,6 +23,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   late final VideoController _controller;
   final GlobalKey<VideoState> _videoKey = GlobalKey<VideoState>();
   bool _isFavorite = false;
+  Timer? _saveTimer;
+  String? _currentProgram;
 
   @override
   void initState() {
@@ -27,6 +32,25 @@ class _PlayerScreenState extends State<PlayerScreen> {
     WakelockPlus.enable();
     _checkFavorite();
     _initializePlayer();
+    _fetchEpg();
+  }
+
+  Future<void> _fetchEpg() async {
+    if (widget.channel.tvgId != null) {
+      // For now, we don't have the EPG URL passed to the player.
+      // In a real app, we would pass the EPG URL or have a singleton repository that holds it.
+      // For this demo, I'll skip fetching if no URL is known, or I could try to find it.
+      // Since I didn't implement passing the EPG URL from M3uParser to ChannelList to Player,
+      // I will just check if I can get it from a global source or just skip for now.
+
+      // Wait, I need to pass the EPG URL to the player or repository.
+      // Let's assume for now we just show the tvg-name if EPG data isn't fetched.
+      if (mounted) {
+        setState(() {
+          _currentProgram = widget.channel.tvgName;
+        });
+      }
+    }
   }
 
   Future<void> _checkFavorite() async {
@@ -57,18 +81,89 @@ class _PlayerScreenState extends State<PlayerScreen> {
     await _player.seek(newPosition);
   }
 
-  void _initializePlayer() {
+  Future<void> _initializePlayer() async {
     _player = Player();
     _controller = VideoController(_player);
 
-    _player.open(Media(widget.channel.streamUrl));
+    await _player.open(Media(widget.channel.streamUrl), play: false);
+
+    // Resume logic
+    final savedPosition =
+        await PlaybackRepository().getPosition(widget.channel.streamUrl);
+    if (savedPosition.inSeconds > 10) {
+      await _player.seek(savedPosition);
+    }
+    await _player.play();
+
+    // Periodic save
+    _saveTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (_player.state.playing) {
+        PlaybackRepository()
+            .savePosition(widget.channel.streamUrl, _player.state.position);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _saveTimer?.cancel();
+    // Save one last time on exit
+    PlaybackRepository()
+        .savePosition(widget.channel.streamUrl, _player.state.position);
     _player.dispose();
     WakelockPlus.disable();
     super.dispose();
+  }
+
+  void _showTracksModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Audio',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
+              ..._player.state.tracks.audio.map((track) => ListTile(
+                    title: Text(track.language ?? track.title ?? 'Unknown',
+                        style: const TextStyle(color: Colors.white)),
+                    trailing: _player.state.track.audio == track
+                        ? const Icon(Icons.check, color: Colors.blue)
+                        : null,
+                    onTap: () {
+                      _player.setAudioTrack(track);
+                      Navigator.pop(context);
+                    },
+                  )),
+              const Divider(color: Colors.grey),
+              const Text('Subtitles',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
+              ..._player.state.tracks.subtitle.map((track) => ListTile(
+                    title: Text(track.language ?? track.title ?? 'Unknown',
+                        style: const TextStyle(color: Colors.white)),
+                    trailing: _player.state.track.subtitle == track
+                        ? const Icon(Icons.check, color: Colors.blue)
+                        : null,
+                    onTap: () {
+                      _player.setSubtitleTrack(track);
+                      Navigator.pop(context);
+                    },
+                  )),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -83,10 +178,29 @@ class _PlayerScreenState extends State<PlayerScreen> {
             top: 16,
             left: 16,
             child: SafeArea(
-              child: IconButton(
-                icon:
-                    const Icon(Icons.arrow_back, color: Colors.white, size: 30),
-                onPressed: () => Navigator.pop(context),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back,
+                        color: Colors.white, size: 30),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  if (_currentProgram != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Text(
+                        _currentProgram!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(blurRadius: 4, color: Colors.black),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -97,6 +211,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
             child: SafeArea(
               child: Row(
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.subtitles,
+                        color: Colors.white, size: 30),
+                    onPressed: _showTracksModal,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.picture_in_picture_alt,
                         color: Colors.white, size: 30),

@@ -8,12 +8,16 @@ class M3uParser {
     String? currentName;
     String? currentLogo;
     String? currentGroup;
+    String? currentTvgId;
+    String? currentTvgName;
 
     // Regex to extract attributes from #EXTINF line
     // Example: #EXTINF:-1 tvg-logo="http://logo.png" group-title="News",Channel Name
     final RegExp extInfRegex = RegExp(r'#EXTINF:.*?,(.*)');
     final RegExp logoRegex = RegExp(r'tvg-logo="([^"]*)"');
     final RegExp groupRegex = RegExp(r'group-title="([^"]*)"');
+    final RegExp tvgIdRegex = RegExp(r'tvg-id="([^"]*)"');
+    final RegExp tvgNameRegex = RegExp(r'tvg-name="([^"]*)"');
 
     for (var line in lines) {
       line = line.trim();
@@ -36,6 +40,18 @@ class M3uParser {
         final groupMatch = groupRegex.firstMatch(line);
         if (groupMatch != null) {
           currentGroup = groupMatch.group(1);
+        }
+
+        // Extract tvg-id
+        final tvgIdMatch = tvgIdRegex.firstMatch(line);
+        if (tvgIdMatch != null) {
+          currentTvgId = tvgIdMatch.group(1);
+        }
+
+        // Extract tvg-name
+        final tvgNameMatch = tvgNameRegex.firstMatch(line);
+        if (tvgNameMatch != null) {
+          currentTvgName = tvgNameMatch.group(1);
         }
       } else if (!line.startsWith('#')) {
         // Assume it's a URL if it doesn't start with #
@@ -64,15 +80,18 @@ class M3uParser {
             group: currentGroup,
             category: category,
             seriesName: seriesName,
+            tvgId: currentTvgId,
+            tvgName: currentTvgName,
           ));
           // Reset for next channel
           currentName = null;
           currentLogo = null;
           currentGroup = null;
+          currentTvgId = null;
+          currentTvgName = null;
         }
       }
     }
-
     return channels;
   }
 
