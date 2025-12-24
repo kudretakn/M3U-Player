@@ -27,6 +27,8 @@ class ChannelListScreen extends StatefulWidget {
 class _ChannelListScreenState extends State<ChannelListScreen> {
   final M3uRepository _repository = M3uRepository();
   List<Channel> allChannels = [];
+  List<String> _groups = [];
+  String? _selectedGroup;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -47,6 +49,9 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
       final fetchedChannels = await _repository.fetchChannels(url);
       setState(() {
         allChannels = fetchedChannels;
+        _groups = allChannels.map((c) => c.group ?? 'Diğer').toSet().toList()
+          ..sort();
+        _selectedGroup = null; // Reset filter
         _isLoading = false;
       });
     } catch (e) {
@@ -258,7 +263,7 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
               const Text('M3U Player'),
               if (allChannels.isNotEmpty)
                 Text(
-                  'Toplam: ${allChannels.length} Kanal',
+                  'Toplam: ${allChannels.length} Kanal${_selectedGroup != null ? ' • $_selectedGroup' : ''}',
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
             ],
@@ -276,6 +281,12 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
             indicatorColor: Colors.blueAccent,
           ),
           actions: [
+            IconButton(
+              icon: Icon(Icons.filter_list,
+                  color: _selectedGroup != null ? Colors.yellow : Colors.white),
+              tooltip: 'Kategori Seç',
+              onPressed: _groups.isNotEmpty ? _showGroupFilter : null,
+            ),
             IconButton(
               icon: const Icon(Icons.link),
               tooltip: 'URL Yükle',
@@ -300,6 +311,60 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showGroupFilter() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'Kategori Seç',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _groups.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return ListTile(
+                      leading: const Icon(Icons.all_inclusive),
+                      title: const Text('Tüm Kategoriler'),
+                      onTap: () {
+                        setState(() {
+                          _selectedGroup = null;
+                        });
+                        Navigator.pop(context);
+                      },
+                      trailing: _selectedGroup == null
+                          ? const Icon(Icons.check, color: Colors.blue)
+                          : null,
+                    );
+                  }
+                  final group = _groups[index - 1];
+                  return ListTile(
+                    title: Text(group),
+                    onTap: () {
+                      setState(() {
+                        _selectedGroup = group;
+                      });
+                      Navigator.pop(context);
+                    },
+                    trailing: _selectedGroup == group
+                        ? const Icon(Icons.check, color: Colors.blue)
+                        : null,
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -338,9 +403,15 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
       );
     }
 
-    final filteredChannels = category == null
+    var filteredChannels = category == null
         ? allChannels
         : allChannels.where((c) => c.category == category).toList();
+
+    if (_selectedGroup != null) {
+      filteredChannels = filteredChannels
+          .where((c) => (c.group ?? 'Diğer') == _selectedGroup)
+          .toList();
+    }
 
     if (filteredChannels.isEmpty) {
       if (allChannels.isEmpty) {
