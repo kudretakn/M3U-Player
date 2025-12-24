@@ -9,17 +9,6 @@ class M3uRepository {
   M3uRepository({http.Client? client}) : _client = client ?? http.Client();
 
   Future<List<Channel>> fetchChannels(String url) async {
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import '../models/channel.dart';
-import '../utils/m3u_parser.dart';
-
-class M3uRepository {
-  final http.Client _client;
-
-  M3uRepository({http.Client? client}) : _client = client ?? http.Client();
-
-  Future<List<Channel>> fetchChannels(String url) async {
     try {
       String fetchUrl = url;
       if (kIsWeb) {
@@ -35,7 +24,8 @@ class M3uRepository {
       if (response.statusCode == 200) {
         return M3uParser.parse(response.body);
       } else {
-        throw Exception('Failed to load M3U: ${response.statusCode} ${response.reasonPhrase}');
+        throw Exception(
+            'Failed to load M3U: ${response.statusCode} ${response.reasonPhrase}');
       }
     } catch (e) {
       // Include the actual error message for debugging
