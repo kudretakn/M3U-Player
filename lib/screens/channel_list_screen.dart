@@ -26,12 +26,6 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
 
   String? _selectedSeries;
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeData();
-  }
-
   Future<void> _initializeData() async {
     // Filter by category first
     var categoryChannels = widget.channels;
@@ -131,6 +125,20 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
     );
   }
 
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+    // Auto-open drawer after built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scaffoldKey.currentState?.openDrawer();
+    });
+  }
+
+  // ... (keeping initializeData and filterChannels same) ...
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -159,6 +167,7 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
         }
 
         return Scaffold(
+          key: _scaffoldKey,
           appBar: AppBar(
             title: Row(
               children: [
@@ -186,7 +195,7 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
                       });
                     },
                   )
-                : null, // Default back button handles navigation out of screen
+                : null, // Default hamburger menu will show since we have a drawer
             backgroundColor: Colors.transparent,
             elevation: 0,
             actions: [
@@ -207,109 +216,64 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
               const SizedBox(width: 16),
             ],
           ),
-          drawer: isPortrait
-              ? Drawer(
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        color: Colors.black12,
-                        width: double.infinity,
-                        child: const Text(
-                          'Kategoriler',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: _groups.length + 1,
-                          itemBuilder: (context, index) {
-                            if (index == 0) {
-                              return _buildGroupTile(null, 'Tümü');
-                            }
-                            final group = _groups[index - 1];
-                            return _buildGroupTile(group, group);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : null,
-          body: Row(
-            children: [
-              // Sidebar (Groups) - Only show in Landscape
-              if (!isPortrait)
+          drawer: Drawer(
+            child: Column(
+              children: [
                 Container(
-                  width: 250,
-                  color: const Color(0xFF1E1E1E),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        color: Colors.black12,
-                        width: double.infinity,
-                        child: const Text(
-                          'Kategoriler',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: _groups.length + 1,
-                          itemBuilder: (context, index) {
-                            if (index == 0) {
-                              return _buildGroupTile(null, 'Tümü');
-                            }
-                            final group = _groups[index - 1];
-                            return _buildGroupTile(group, group);
-                          },
-                        ),
-                      ),
-                    ],
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.black12,
+                  width: double.infinity,
+                  child: const Text(
+                    'Kategoriler',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
-              // Main Content (Channels or Series Folders)
-              Expanded(
-                child: gridItems.isEmpty
-                    ? const Center(child: Text('İçerik bulunamadı'))
-                    : GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: isPortrait ? 2 : 5,
-                          childAspectRatio: 1.5,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                        itemCount: gridItems.length,
-                        itemBuilder: (context, index) {
-                          if (isSeriesMode) {
-                            final seriesName = gridItems[index] as String;
-                            // Find first channel of this series to get logo
-                            final firstChannel = _filteredChannels.firstWhere(
-                                (c) => (c.seriesName ?? c.name) == seriesName,
-                                orElse: () => _filteredChannels[0]);
-
-                            return _buildSeriesCard(
-                                seriesName, firstChannel.logoUrl);
-                          } else {
-                            return ChannelCard(
-                              channel: gridItems[index] as Channel,
-                              onTap: () =>
-                                  _openPlayer(gridItems[index] as Channel),
-                            );
-                          }
-                        },
-                      ),
-              ),
-            ],
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _groups.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return _buildGroupTile(null, 'Tümü');
+                      }
+                      final group = _groups[index - 1];
+                      return _buildGroupTile(group, group);
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
+          body: gridItems.isEmpty
+              ? const Center(child: Text('İçerik bulunamadı'))
+              : GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: isPortrait ? 2 : 5,
+                    childAspectRatio: 1.5,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: gridItems.length,
+                  itemBuilder: (context, index) {
+                    if (isSeriesMode) {
+                      final seriesName = gridItems[index] as String;
+                      // Find first channel of this series to get logo
+                      final firstChannel = _filteredChannels.firstWhere(
+                          (c) => (c.seriesName ?? c.name) == seriesName,
+                          orElse: () => _filteredChannels[0]);
+
+                      return _buildSeriesCard(seriesName, firstChannel.logoUrl);
+                    } else {
+                      return ChannelCard(
+                        channel: gridItems[index] as Channel,
+                        onTap: () => _openPlayer(gridItems[index] as Channel),
+                      );
+                    }
+                  },
+                ),
         );
       },
     );
@@ -389,6 +353,8 @@ class _ChannelListScreenState extends State<ChannelListScreen> {
           _selectedGroup = group;
           _filterChannels();
         });
+        // Close the drawer after selection
+        Navigator.pop(context);
       },
     );
   }

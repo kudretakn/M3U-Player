@@ -90,9 +90,49 @@ class _PlayerScreenState extends State<PlayerScreen> {
     // Resume logic
     final savedPosition =
         await PlaybackRepository().getPosition(widget.channel.streamUrl);
+
     if (savedPosition.inSeconds > 10) {
-      await _player.seek(savedPosition);
+      if (mounted) {
+        // Ask user what to do
+        final shouldResume = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            backgroundColor: Colors.grey[900],
+            title: const Text('Kaldığın Yerden Devam Et?',
+                style: TextStyle(color: Colors.white)),
+            content: Text(
+              'Önceki izleme noktasından devam etmek ister misin?\n(${_formatDuration(savedPosition)})',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Baştan Başla',
+                    style: TextStyle(color: Colors.white)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Devam Et',
+                    style: TextStyle(color: Colors.blueAccent)),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldResume == true) {
+          // Robust Way: Wait for duration to be known before seeking
+          StreamSubscription<Duration>? subscription;
+          subscription = _player.stream.duration.listen((duration) {
+            if (duration != Duration.zero) {
+              _player.seek(savedPosition);
+              subscription?.cancel();
+            }
+          });
+        }
+      }
     }
+
     await _player.play();
 
     // Periodic save
@@ -311,5 +351,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ],
       ),
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    final twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    return "${duration.inHours > 0 ? '${twoDigits(duration.inHours)}:' : ''}$twoDigitMinutes:$twoDigitSeconds";
   }
 }
