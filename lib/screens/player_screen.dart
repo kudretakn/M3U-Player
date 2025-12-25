@@ -174,6 +174,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           MaterialVideoControlsTheme(
             normal: MaterialVideoControlsThemeData(
+              padding: const EdgeInsets.symmetric(
+                  vertical: 48, horizontal: 24), // Lift up controls in portrait
               buttonBarHeight: 64, // Increase height
               bottomButtonBar: [
                 const MaterialPositionIndicator(),
@@ -184,7 +186,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   child: const MaterialFullscreenButton(),
                 ),
                 const SizedBox(
-                    width: 24), // Move slightly left (padding from right)
+                    width: 48), // Move slightly left (padding from right)
               ],
               primaryButtonBar: [
                 const Spacer(flex: 2),
@@ -214,7 +216,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   scale: 1.1,
                   child: const MaterialFullscreenButton(),
                 ),
-                const SizedBox(width: 24),
+                const SizedBox(width: 48),
               ],
               primaryButtonBar: [
                 const Spacer(flex: 2),
