@@ -81,3 +81,10 @@ app.*.map.json
 .vscode/
 .idea/
 *.DS_Store
+
+# Enforce Android-Only Policy
+/ios/
+/windows/
+/linux/
+/macos/
+/web/
