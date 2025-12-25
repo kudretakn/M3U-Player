@@ -35,24 +35,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _fetchEpg();
   }
 
-  Future<void> _fetchEpg() async {
-    if (widget.channel.tvgId != null) {
-      // For now, we don't have the EPG URL passed to the player.
-      // In a real app, we would pass the EPG URL or have a singleton repository that holds it.
-      // For this demo, I'll skip fetching if no URL is known, or I could try to find it.
-      // Since I didn't implement passing the EPG URL from M3uParser to ChannelList to Player,
-      // I will just check if I can get it from a global source or just skip for now.
-
-      // Wait, I need to pass the EPG URL to the player or repository.
-      // Let's assume for now we just show the tvg-name if EPG data isn't fetched.
-      if (mounted) {
-        setState(() {
-          _currentProgram = widget.channel.tvgName;
-        });
-      }
-    }
-  }
-
   Future<void> _checkFavorite() async {
     final isFav =
         await FavoritesRepository().isFavorite(widget.channel.streamUrl);
@@ -324,6 +306,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: Row(
                 children: [
                   IconButton(
+                    icon: const Icon(Icons.list, color: Colors.white, size: 30),
+                    tooltip: 'Yayın Akışı',
+                    onPressed: _showEpgModal,
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.subtitles,
                         color: Colors.white, size: 30),
                     onPressed: _showTracksModal,
@@ -351,6 +338,130 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _fetchEpg() async {
+    if (widget.channel.tvgId != null) {
+      final current =
+          await EpgRepository().getCurrentProgram(widget.channel.tvgId!);
+      if (mounted) {
+        setState(() {
+          if (current != null) {
+            final start = _formatTime(current.start);
+            final end = _formatTime(current.end);
+            _currentProgram = '$start - $end: ${current.title}';
+          } else {
+            _currentProgram = widget.channel.tvgName ?? widget.channel.name;
+          }
+        });
+      }
+    } else {
+      setState(() {
+        _currentProgram = widget.channel.tvgName ?? widget.channel.name;
+      });
+    }
+  }
+
+  void _showEpgModal() async {
+    if (widget.channel.tvgId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bu kanal için yayın akışı bulunamadı.')),
+      );
+      return;
+    }
+
+    final schedule = await EpgRepository().getSchedule(widget.channel.tvgId!);
+    if (!mounted) return;
+
+    if (schedule.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Yayın akışı bilgisi yüklenemedi.')),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    '${widget.channel.name} - Yayın Akışı',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const Divider(color: Colors.grey),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: schedule.length,
+                    itemBuilder: (context, index) {
+                      final program = schedule[index];
+                      final isNow =
+                          DateTime.now().toUtc().isAfter(program.start) &&
+                              DateTime.now().toUtc().isBefore(program.end);
+
+                      return ListTile(
+                        leading: Text(
+                          _formatTime(program.start),
+                          style: TextStyle(
+                            color: isNow ? Colors.blueAccent : Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        title: Text(
+                          program.title,
+                          style: TextStyle(
+                            color: isNow ? Colors.white : Colors.white70,
+                            fontWeight:
+                                isNow ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        subtitle: program.description != null
+                            ? Text(
+                                program.description!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Colors.white30),
+                              )
+                            : null,
+                        tileColor:
+                            isNow ? Colors.blueAccent.withOpacity(0.1) : null,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _formatTime(DateTime date) {
+    // Add 3 hours for simplistic timezone fix if assumed UTC, or just raw. Use raw logic for MVP.
+    // If date is UTC, just toLocal() might work if device is in correct zone.
+    // Let's use toLocal() which is safer.
+    final local = date.toLocal();
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    return '${twoDigits(local.hour)}:${twoDigits(local.minute)}';
   }
 
   String _formatDuration(Duration duration) {

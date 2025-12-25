@@ -95,6 +95,25 @@ class M3uParser {
     return channels;
   }
 
+  static String? extractEpgUrl(String content) {
+    // Look for #EXTM3U header line
+    final lines = content.split('\n');
+    for (var line in lines) {
+      if (line.trim().startsWith('#EXTM3U')) {
+        // Try url-tvg
+        final urlTvgMatch = RegExp(r'url-tvg="([^"]*)"').firstMatch(line);
+        if (urlTvgMatch != null) return urlTvgMatch.group(1);
+
+        // Try x-tvg-url
+        final xTvgUrlMatch = RegExp(r'x-tvg-url="([^"]*)"').firstMatch(line);
+        if (xTvgUrlMatch != null) return xTvgUrlMatch.group(1);
+
+        break; // Header usually implies first relevant line, stop if found but empty
+      }
+    }
+    return null;
+  }
+
   static ChannelCategory _determineCategory(String? group, String url) {
     final groupLower = group?.toLowerCase() ?? '';
     final urlLower = url.toLowerCase();

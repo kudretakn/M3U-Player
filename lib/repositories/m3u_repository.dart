@@ -118,8 +118,16 @@ class M3uRepository {
       );
 
       if (response.statusCode == 200) {
-        final channels = M3uParser.parse(
-            utf8.decode(response.bodyBytes, allowMalformed: true));
+        final content = utf8.decode(response.bodyBytes, allowMalformed: true);
+
+        // Extract and save EPG URL
+        final epgUrl = M3uParser.extractEpgUrl(content);
+        if (epgUrl != null && epgUrl.isNotEmpty) {
+          SettingsRepository().saveEpgUrl(epgUrl);
+          print('EPG URL found and saved: $epgUrl');
+        }
+
+        final channels = M3uParser.parse(content);
         return await _filterChannels(channels);
       } else {
         throw Exception(
