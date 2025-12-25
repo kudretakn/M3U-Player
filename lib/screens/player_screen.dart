@@ -174,38 +174,61 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           MaterialVideoControlsTheme(
             normal: MaterialVideoControlsThemeData(
+              buttonBarHeight: 64, // Increase height
+              bottomButtonBar: [
+                const MaterialPositionIndicator(),
+                const Spacer(),
+                // Custom fullscreen button with padding and larger size
+                Transform.scale(
+                  scale: 1.1, // Increase size by 10%
+                  child: const MaterialFullscreenButton(),
+                ),
+                const SizedBox(
+                    width: 24), // Move slightly left (padding from right)
+              ],
               primaryButtonBar: [
                 const Spacer(flex: 2),
                 IconButton(
                   icon: const Icon(Icons.replay_10, color: Colors.white),
-                  iconSize: 36,
+                  iconSize: 48, // Slightly larger seek buttons too
                   onPressed: () => _seekRelative(const Duration(seconds: -15)),
                 ),
                 const Spacer(),
-                const MaterialPlayOrPauseButton(),
+                const MaterialPlayOrPauseButton(
+                    iconSize: 56), // Larger play/pause
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.forward_10, color: Colors.white),
-                  iconSize: 36,
+                  iconSize: 48,
                   onPressed: () => _seekRelative(const Duration(seconds: 15)),
                 ),
                 const Spacer(flex: 2),
               ],
             ),
             fullscreen: MaterialVideoControlsThemeData(
+              buttonBarHeight: 64,
+              bottomButtonBar: [
+                const MaterialPositionIndicator(),
+                const Spacer(),
+                Transform.scale(
+                  scale: 1.1,
+                  child: const MaterialFullscreenButton(),
+                ),
+                const SizedBox(width: 24),
+              ],
               primaryButtonBar: [
                 const Spacer(flex: 2),
                 IconButton(
                   icon: const Icon(Icons.replay_10, color: Colors.white),
-                  iconSize: 36,
+                  iconSize: 48,
                   onPressed: () => _seekRelative(const Duration(seconds: -15)),
                 ),
                 const Spacer(),
-                const MaterialPlayOrPauseButton(),
+                const MaterialPlayOrPauseButton(iconSize: 56),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.forward_10, color: Colors.white),
-                  iconSize: 36,
+                  iconSize: 48,
                   onPressed: () => _seekRelative(const Duration(seconds: 15)),
                 ),
                 const Spacer(flex: 2),
