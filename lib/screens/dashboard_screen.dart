@@ -3,7 +3,7 @@ import '../models/channel.dart';
 import '../repositories/favorites_repository.dart';
 import '../repositories/m3u_repository.dart';
 import 'channel_list_screen.dart';
-
+import 'speed_test_screen.dart';
 import 'settings_screen.dart';
 import '../models/playlist.dart';
 
@@ -133,6 +133,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
               // Refresh channels when returning from settings
               _loadChannels();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.speed),
+            tooltip: 'Hız Testi',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const SpeedTestScreen()),
+              );
             },
           ),
         ],
