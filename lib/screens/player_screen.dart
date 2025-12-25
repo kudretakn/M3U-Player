@@ -254,17 +254,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     onPressed: () => Navigator.pop(context),
                   ),
                   if (_currentProgram != null)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8.0),
-                      child: Text(
-                        _currentProgram!,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            Shadow(blurRadius: 4, color: Colors.black),
-                          ],
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text(
+                          _currentProgram!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            shadows: [
+                              Shadow(blurRadius: 4, color: Colors.black),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -272,9 +276,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             ),
           ),
-          // Favorite button overlay
+          // Favorite button overlay (Moved down to avoid overlap)
           Positioned(
-            top: 16,
+            top: 80,
             right: 16,
             child: SafeArea(
               child: Row(
