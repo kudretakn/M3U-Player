@@ -138,9 +138,37 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _showTracksModal() {
+    // Filter audio tracks: Exclude if language AND title are null/empty, or "Undetermined"
+    final audioTracks = _player.state.tracks.audio.where((track) {
+      final label = track.language ?? track.title;
+      return label != null &&
+          label.isNotEmpty &&
+          label.toLowerCase() != 'und' &&
+          label.toLowerCase() != 'unknown';
+    }).toList();
+
+    // Filter subtitle tracks
+    final subtitleTracks = _player.state.tracks.subtitle.where((track) {
+      final label = track.language ?? track.title;
+      return label != null &&
+          label.isNotEmpty &&
+          label.toLowerCase() != 'und' &&
+          label.toLowerCase() != 'unknown';
+    }).toList();
+
+    if (audioTracks.isEmpty && subtitleTracks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ses veya altyazı seçeneği bulunamadı.')),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.black87,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(16),
@@ -148,30 +176,40 @@ class _PlayerScreenState extends State<PlayerScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Audio',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
-              ..._player.state.tracks.audio.map((track) => ListTile(
-                    title: Text(track.language ?? track.title ?? 'Unknown',
-                        style: const TextStyle(color: Colors.white)),
-                    trailing: _player.state.track.audio == track
-                        ? const Icon(Icons.check, color: Colors.blue)
-                        : null,
-                    onTap: () {
-                      _player.setAudioTrack(track);
-                      Navigator.pop(context);
-                    },
-                  )),
-              const Divider(color: Colors.grey),
-              const Text('Subtitles',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
-              ..._player.state.tracks.subtitle.map((track) => ListTile(
-                    title: Text(track.language ?? track.title ?? 'Unknown',
+              if (audioTracks.isNotEmpty) ...[
+                const Text('Ses',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...audioTracks.map((track) => ListTile(
+                      title: Text(track.language ?? track.title ?? 'Bilinmeyen',
+                          style: const TextStyle(color: Colors.white)),
+                      trailing: _player.state.track.audio == track
+                          ? const Icon(Icons.check, color: Colors.blue)
+                          : null,
+                      onTap: () {
+                        _player.setAudioTrack(track);
+                        Navigator.pop(context);
+                      },
+                      dense: true,
+                    )),
+                const SizedBox(height: 16),
+              ],
+              if (audioTracks.isNotEmpty && subtitleTracks.isNotEmpty)
+                const Divider(color: Colors.grey),
+              if (subtitleTracks.isNotEmpty) ...[
+                const Text('Altyazı',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...subtitleTracks.map((track) {
+                  final label = track.language ?? track.title ?? 'Bilinmeyen';
+                  return ListTile(
+                    title: Text(label,
                         style: const TextStyle(color: Colors.white)),
                     trailing: _player.state.track.subtitle == track
                         ? const Icon(Icons.check, color: Colors.blue)
@@ -180,7 +218,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       _player.setSubtitleTrack(track);
                       Navigator.pop(context);
                     },
-                  )),
+                    dense: true,
+                  );
+                }),
+              ],
             ],
           ),
         );
