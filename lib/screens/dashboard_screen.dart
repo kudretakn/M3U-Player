@@ -5,6 +5,7 @@ import '../repositories/m3u_repository.dart';
 import 'channel_list_screen.dart';
 import 'speed_test_screen.dart';
 import 'settings_screen.dart';
+import 'player_screen.dart';
 import '../models/playlist.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -124,6 +125,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('M3U Player'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Arama Yap',
+            onPressed: () {
+              if (allChannels.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Kanal listesi boş.')),
+                );
+                return;
+              }
+              showSearch(
+                context: context,
+                delegate: GlobalSearchDelegate(allChannels),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () async {
@@ -285,5 +302,137 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
     );
+  }
+}
+
+class GlobalSearchDelegate extends SearchDelegate<Channel?> {
+  final List<Channel> allChannels;
+
+  GlobalSearchDelegate(this.allChannels);
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      if (query.isNotEmpty)
+        IconButton(
+          icon: const Icon(Icons.clear),
+          onPressed: () {
+            query = '';
+          },
+        ),
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, null);
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    return _buildList(context);
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    return _buildList(context);
+  }
+
+  Widget _buildList(BuildContext context) {
+    final queryLower = query.toLowerCase();
+    final results = allChannels.where((channel) {
+      if (query.isEmpty) return false;
+      return channel.name.toLowerCase().contains(queryLower) ||
+          (channel.group?.toLowerCase().contains(queryLower) ?? false);
+    }).toList();
+
+    if (query.isEmpty) {
+      return const Center(
+          child: Text('Kanal, film veya dizi arayın...',
+              style: TextStyle(color: Colors.grey)));
+    }
+
+    if (results.isEmpty) {
+      return const Center(child: Text('Sonuç bulunamadı.'));
+    }
+
+    return ListView.builder(
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        final channel = results[index];
+        IconData icon;
+        Color color;
+
+        switch (channel.category) {
+          case ChannelCategory.live:
+            icon = Icons.live_tv;
+            color = Colors.redAccent;
+            break;
+          case ChannelCategory.movie:
+            icon = Icons.movie;
+            color = Colors.blueAccent;
+            break;
+          case ChannelCategory.series:
+            icon = Icons.video_library;
+            color = Colors.green;
+            break;
+          default:
+            icon = Icons.tv;
+            color = Colors.grey;
+        }
+
+        return ListTile(
+          leading: Icon(icon, color: color),
+          title: Text(channel.name),
+          subtitle: Text(channel.group ?? 'Diğer'),
+          onTap: () {
+            close(context, channel);
+            _handleSelection(context, channel);
+          },
+        );
+      },
+    );
+  }
+
+  void _handleSelection(BuildContext context, Channel channel) {
+    if (channel.category == ChannelCategory.series) {
+      // Ideally we should navigate to the series internal folder, but for now filtering by group in channel list is the pattern
+      // However, since we are in Dashboard context, let's just open the player directly or go to list
+      // For simplicity and consistency with current "ChannelListScreen" logic which groups series:
+      // Let's open ChannelListScreen filtered by this channel's group
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChannelListScreen(
+              channels:
+                  allChannels, // Pass all, but maybe filter? No, let user see context.
+              initialCategory: ChannelCategory.series, // Start in series mode
+              // TODO: Ideally we should open the specific folder but our ChannelListScreen logic is folder-based.
+              // Let's just play it directly if it's a specific episode!
+            ),
+          ));
+      // Wait, playing directly is better UX for search.
+      // But for Series, it's usually an episode.
+      // Let's Play it.
+      // Actually, if I look at ChannelListScreen, tapping a series episode plays it.
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PlayerScreen(channel: channel),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PlayerScreen(channel: channel),
+        ),
+      );
+    }
   }
 }

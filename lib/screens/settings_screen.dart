@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../repositories/settings_repository.dart';
+import '../repositories/theme_repository.dart';
+import '../main.dart'; // For ThemeManager
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -34,6 +36,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  void _showThemeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Renk Teması Seç'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: AppThemes.colors.length,
+              itemBuilder: (context, index) {
+                final color = AppThemes.colors[index];
+                final name = AppThemes.names[index];
+                final isSelected = ThemeManager.instance.value == index;
+
+                return ListTile(
+                  leading: CircleAvatar(backgroundColor: color),
+                  title: Text(name),
+                  trailing: isSelected
+                      ? const Icon(Icons.check, color: Colors.blue)
+                      : null,
+                  onTap: () {
+                    ThemeManager.instance.changeTheme(index);
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('İptal'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,6 +94,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _adultFilterEnabled,
                   onChanged: _toggleAdultFilter,
                   secondary: const Icon(Icons.block, color: Colors.red),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.palette),
+                  title: const Text('Tema Rengi'),
+                  subtitle: const Text('Uygulama temasını değiştirin'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => _showThemeDialog(context),
                 ),
               ],
             ),
